@@ -54,11 +54,11 @@ This project is used to test nebula
      {"casename":"case1_1_step_0050_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"25","perftest_duration":"7"}     
 
    F Others
-     > Now the machine`s system monitor
-     > http://192.168.15.4:3000/d/9CWBz0bik/1-node-exporter-for-prometheus-dashboard-cn-v20201010?orgId=1
+     Now the machine`s system monitor
+     http://192.168.15.4:3000/d/9CWBz0bik/1-node-exporter-for-prometheus-dashboard-cn-v20201010?orgId=1
      
    G [PerfDashboard]
-     > http://192.168.8.6:3000/collection/root 
-     > [user/pwd] admin@xxx.com/admin123 
+     http://192.168.8.6:3000/collection/root 
+     [user/pwd] : admin@xxx.com/admin123 
     
  
