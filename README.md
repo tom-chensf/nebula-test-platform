@@ -55,9 +55,9 @@ This project is used to test nebula
 
    F Others
      Now the machine`s system monitor
-     http://192.168.15.4:3000/d/9CWBz0bik/1-node-exporter-for-prometheus-dashboard-cn-v20201010?orgId=1
+     [http://192.168.15.4:3000/d/9CWBz0bik/1-node-exporter-for-prometheus-dashboard-cn-v20201010?orgId=1]
      
    G PerfDashboard
-     http://192.168.8.6:3000/collection/root admin@xxx.com/admin123  
+     [http://192.168.8.6:3000/collection/root admin@xxx.com/admin123]  
     
  
