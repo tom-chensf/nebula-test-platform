@@ -1,0 +1,57 @@
+ - hosts: perftest-machine-master
+   vars:      
+     nebula_bench_repo: https://github.com/tom-chensf/nebula-bench.git
+     branch: modify_perftest
+     jmeter_dir: jmeter
+     test_dir: run_case
+     case_file: "{{ lookup('file','{{playbook_dir}}/../cases/perftest/case.json')  }}"
+     nebula_version: master
+     #  mysql_conf: \{"ip":"192.168.15.4","port":3306,"user":"root","pwd":"nebula","db":"perftest1"\}
+     mysql_conf:  \{\"ip\":\"192.168.15.4\",\"port\":3306,\"user\":\"root\",\"pwd\":\"nebula\",\"db\":\"perftest1\"\}  
+   tasks:
+     - name: setup dir
+       shell: |
+             if [[ ! -d {{work_dir}} ]]; then
+                echo "setup dir failed, nebula-bench not install" 
+                exit -1
+              fi
+
+              cd {{work_dir}}
+              rm -rf {{test_dir}}
+              mkdir {{test_dir}}
+       register: setup_dir_msg
+
+     - fail:
+         msg:  "setup dir failed, nebula-bench not install"
+       when: "'setup dir failed, nebula-bench not install' in setup_dir_msg.stdout"
+     
+
+     - name: cp jmx file
+       template:  src={{playbook_dir}}/../conf/perftest_conf/go_step.jmx.j2 dest={{work_dir}}/{{test_dir}}/go_step.jmx force=yes
+       #nebula-bench/ldbc/jmx/go_step.jmx force=yes
+     
+     - name: cp run.sh
+       template: src={{playbook_dir}}/../conf/perftest_conf/run.sh.j2 dest={{work_dir}}/nebula-bench/run.sh force=yes
+         
+     - name: replace jmx var
+       shell: |
+           cp -rf {{work_dir}}/{{test_dir}}/go_step.jmx {{work_dir}}/nebula-bench/ldbc/jmx/go_step.jmx
+           echo {{ item.casename }} > /tmp/x
+           sed -i "s/perftest_num_threads/{{item.perftest_num_threads}}/g"  {{work_dir}}/nebula-bench/ldbc/jmx/go_step.jmx
+           sed -i "s/perftest_duration/{{item.perftest_duration}}/g"  {{work_dir}}/nebula-bench/ldbc/jmx/go_step.jmx
+           sed -i "s/perftest_nGQL/{{item.perftest_nGQL}}/g"  {{work_dir}}/nebula-bench/ldbc/jmx/go_step.jmx
+           
+           if [[ $? != 0 ]]; then
+               echo "perftest failed: replace jmx "
+               exit -1
+           fi
+           jmeter_dir=`find {{work_dir}} -path "*jmeter/apache*/bin"`
+
+           #    echo  sh {{work_dir}}/nebula-bench/run.sh -m {{mysql_conf}} -c {{item.casename}} -v {{nebula_version}}  -j ${jmeter_dir}/.. -t {{work_dir}}/{{test_dir}} >> /tmp/abc
+           sh {{work_dir}}/nebula-bench/run.sh -m {{mysql_conf}} -c {{item.casename}} -v {{nebula_version}}  -j ${jmeter_dir}/.. -t {{work_dir}}/{{test_dir}}
+           if [[ $? != 0 ]]; then
+               echo "perftest failed: run nebula-bench"
+               exit -1
+           fi
+       register: perftest_msg
+       loop: "{{ case_file.case }}"

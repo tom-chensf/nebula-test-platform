@@ -1,0 +1,153 @@
+ - hosts: build-machine[0]
+   vars: 
+     graph: https://github.com/vesoft-inc/nebula-graph.git
+     storage: https://github.com/vesoft-inc/nebula-storage.git
+     common: https://github.com/vesoft-inc/nebula-common.git
+     branch: master
+   tasks:
+     - name: register datetime
+       shell:  date +%Y%m%d_%H%M%S_%N | cut -b1-20
+       register: datetime
+
+     - name: build nebula
+       shell: |
+             if [ ! -d /home/vesoft/nebula_build ]; then
+                 mkdir /home/vesoft/nebula_build
+             fi
+             path=/home/vesoft/nebula_build/{{datetime.stdout_lines[0]}}
+             mkdir ${path}
+
+     - name: cp build.sh
+       copy: src={{playbook_dir}}/../build/build.sh dest=/home/vesoft/nebula_build/{{datetime.stdout_lines[0]}}/build.sh
+
+     - name: complie code
+       become: yes
+       become_user: root
+       become_method: sudo
+       shell: |
+           cd /home/vesoft/nebula_build/{{datetime.stdout_lines[0]}}
+           chmod 755 build.sh
+           ./build.sh  -g {{graph}} -s {{storage}} -c {{common}} -b {{branch}} -v {{datetime.stdout_lines[0]}}
+            if [ $? != 0 ]
+            then
+                echo "complie code failed!"
+            fi
+       register: build_rst
+
+     - fail: 
+          msg: "complie code failed!"
+       when: "'complie code failed'  in build_rst.stdout"
+
+     - name: find_nebula_gz_with_path
+       shell: |
+              find /home/vesoft/nebula_build/{{datetime.stdout_lines[0]}} -name "*tar.gz" | grep pack_output
+       register: nebula_gz_with_path
+
+     - fail:
+         msg: "Can not find nebula_gz_with_path"
+       when: "'tar.gz' not in nebula_gz_with_path.stdout"
+
+     - name: cp nebula_gz_with_path
+       fetch:  
+         src: "{{nebula_gz_with_path.stdout_lines[0]}}" 
+         dest: /tmp/
+         flat: yes
+ 
+     - name: get_nebula_tar_name
+       shell: |
+             echo {{nebula_gz_with_path.stdout_lines[0]}} | awk -F'/' '{print $NF}'
+       register: nebula_tar_name
+     - set_fact:
+         datetime_sf: "{{datetime.stdout_lines[0]}}"
+         nebula_gz_with_path_sf: "{{nebula_gz_with_path.stdout_lines[0]}}"
+         nebula_tar_name_sf: "{{nebula_tar_name.stdout_lines[0]}}"
+     - debug:
+         msg: "{{datetime_sf}} {{nebula_gz_with_path_sf}} {{nebula_tar_name_sf}}"
+
+ - hosts: nebula-machine
+   vars:
+     data_path: /data/csf/nebula2.0/
+   remote_user: vesoft
+   tasks:
+     - name: cp nebula gz
+       copy: src=/tmp/{{hostvars[groups['build-machine'][0]].nebula_tar_name_sf}} dest=/tmp/
+
+     - name: install
+       shell: |
+             for port in {{meta_port}} $(({{meta_port}}+1)) {{meta_ws_http_port}} {{meta_ws_h2_port}} $(({{storage_port}}-2)) $(({{storage_port}}-1)) {{storage_port}} $(({{storage_port}}+1)) {{storage_ws_http_port}} {{storage_ws_h2_port}} {{graph_port}} {{graph_ws_http_port}} {{graph_ws_h2_port}}
+             do
+                 sudo netstat -anp | grep LISTEN | grep ${port}
+                 if [ $? = 0 ]
+                 then
+                      sudo netstat -nlp | grep LISTEN  | grep  ${port} | awk '{print $7}' | awk -F '/' '{print $1}' | xargs kill -9
+                 fi
+
+             done
+             if [ ! -d {{nebula_dir}} ]; then
+                  mkdir {{nebula_dir}} && rm -rf {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}  && mkdir {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}  && cd {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}
+             else
+                  rm -rf {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}  &&  mkdir {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}  && cd {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}
+             fi
+             tar -xvzf /tmp/{{hostvars[groups['build-machine'][0]].nebula_tar_name_sf}}  -C {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}}
+             if [ $? != 0 ]
+             then
+                 echo "tar -xvzf nebula tar failed!"
+             fi           
+       register: install_msg
+     - fail:
+         msg: "install nebula failed" 
+       when:  "'failed' in install_msg.stdout"
+     - name: etc_path
+       shell: |
+              find {{nebula_dir}}/{{hostvars[groups['build-machine'][0]].datetime_sf}} -path "*etc"
+       register: etc_path
+     
+     - name: cp meta conf
+       template: src={{playbook_dir}}/../conf/perf_service_conf/nebula-metad.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-metad.conf
+
+     - name: cp storaged conf
+       template: src={{playbook_dir}}/../conf/perf_service_conf/nebula-storaged.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-storaged.conf 
+
+     - name: cp graphd conf
+       template: src={{playbook_dir}}/../conf/perf_service_conf/nebula-graphd.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-graphd.conf
+
+     - name: cp data
+       shell: |
+              cp -r  {{data_path}}  {{etc_path.stdout_lines[0]}}/../data
+              if [ $? != 0 ]
+              then
+              echo "cp data failed!"
+              fi
+       register: cp_data_msg
+
+     - fail:
+         msg: "cp data failed"
+       when: "'failed' in cp_data_msg.stdout" 
+
+     - name: start meta service
+       shell: | 
+          {{etc_path.stdout_lines[0]}}/../scripts/nebula.service start metad 
+           sleep 10
+          {{etc_path.stdout_lines[0]}}/../scripts/nebula.service status metad 
+       register: meta_msg
+     - fail:
+         msg: "start meta failed"
+       when: "'Listening on' not in meta_msg.stdout"              
+     - name: start storage service
+       shell: |
+             {{etc_path.stdout_lines[0]}}/../scripts/nebula.service start storaged
+             sleep 10
+             {{etc_path.stdout_lines[0]}}/../scripts/nebula.service status storaged
+       register: storage_msg
+     - fail:
+         msg: "start storage failed"
+       when: "'Listening on' not in storage_msg.stdout"
+     - name: start graph service
+       shell: |
+             {{etc_path.stdout_lines[0]}}/../scripts/nebula.service start graphd
+                sleep 10
+             {{etc_path.stdout_lines[0]}}/../scripts/nebula.service status graphd
+       register: graph_msg
+     - fail:
+         msg: "start graph failed"
+       when: "'Listening on' not in graph_msg.stdout" 

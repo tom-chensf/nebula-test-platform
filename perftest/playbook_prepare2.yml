@@ -1,0 +1,86 @@
+ - hosts:  build-machine
+   tasks:
+     - name: install tool
+       become: yes
+       become_user: root
+       become_method: sudo
+       yum: 
+         name:  docker
+         state: latest
+     - name: pull images
+       become: yes
+       become_user: root
+       become_method: sudo
+       shell: |
+          docker pull vesoft/nebula-dev:centos6
+          docker pull vesoft/nebula-dev:centos7
+          docker pull vesoft/nebula-dev:centos8
+          docker pull vesoft/nebula-dev:ubuntu1604
+          docker pull vesoft/nebula-dev:ubuntu1804
+          docker pull vesoft/nebula-dev:ubuntu2004
+
+ - hosts:  nebula-machine
+   tasks:
+     - name: install tool
+       become: yes
+       become_user: root
+       become_method: sudo
+       yum:
+         name:  python3
+         state: installed
+
+  - hosts: perftest-machine-master
+    vars:
+      nebula-bench: https://github.com/tom-chensf/nebula-bench.git
+      branch: modify_perftest
+      jmeter_dir: jmeter
+    tasks:
+      - name: setup perftest tool
+        shell: |
+              cd {{work_dir}}
+              git clone {{nebula-bench}} -b {{modify_perftest}}
+              if [[ $? !=0 ]]; then
+                  echo "git clone repo failed!"
+                  exit -1
+              fi
+              cd {{nebula-bench}}/nebula-bench
+              mkdir {{jmeter}}
+              sh setup.sh jmeter
+              if [[ $? !=0 ]]; then
+                  echo "setup jmeter failed!"
+                  exit -1
+              fi
+        register: setup_msg
+      - fail:
+          msg: "setup perftest tool failed"
+        when: "'failed'  in setup_msg.stdout"
+    
+    
+  - hosts: perftest-machine-slave
+    vars:
+      nebula-bench: https://github.com/tom-chensf/nebula-bench.git
+      branch: modify_perftest
+      jmeter_dir: jmeter
+    tasks:
+      - name: setup perftest tool
+        shell: |
+              cd {{work_dir}}
+              git clone {{nebula-bench}} -b {{modify_perftest}}
+              if [[ $? !=0 ]]; then
+                  echo "git clone repo failed!"
+                  exit -1
+              fi
+              cd {{nebula-bench}}/nebula-bench
+              mkdir {{jmeter}}
+              sh setup.sh jmeter
+              if [[ $? !=0 ]]; then
+                  echo "setup jmeter failed!"
+                  exit -1
+              fi
+        register: setup_msg
+      - fail:
+          msg: "setup perftest tool failed"
+        when: "'failed'  in setup_msg.stdout"
+
+
+~ 

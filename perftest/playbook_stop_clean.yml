@@ -1,0 +1,43 @@
+ - hosts: build-machine
+   remote_user: vesoft
+   tasks:
+     - name: clean dir
+       shell:  rm -rf /home/vesoft/nebula_build/
+
+ - hosts:  nebula-machine
+   tasks:
+     - name: stop service
+       shell: |
+         for port in {{meta_port}} $(({{meta_port}}+1)) {{meta_ws_http_port}} {{meta_ws_h2_port}} $(({{storage_port}}-2)) $(({{storage_port}}-1)) {{storage_port}} $(({{storage_port}}+1)) {{storage_ws_http_port}} {{storage_ws_h2_port}} {{graph_port}} {{graph_ws_http_port}} {{graph_ws_h2_port}}
+            do
+                 sudo netstat -anp | grep LISTEN |grep ${port}
+                 if [ $? = 0 ]
+                 then
+                      sudo netstat -nlp | grep LISTEN  | grep  ${port} | awk '{print $7}' | awk -F '/' '{print $1}' | xargs kill -9 
+                 fi
+             done
+     - name: clean dir
+       file: "path={{nebula_dir}} state=absent"
+
+ - hosts: perftest-machine-master
+   remote_user: vesoft
+   tasks:
+     - name: rm dir
+       shell: |
+             sudo netstat -anp | grep LISTEN |grep {{port}}
+             if [ $? = 0 ]
+             then
+                 sudo netstat -nlp | grep LISTEN  | grep  {{port}} | awk '{print $7}' | awk -F '/' '{print $1}' | xargs kill -9
+             fi 
+             rm -rf {{work_dir}}
+
+ - hosts: perftest-machine-slave
+   tasks:
+     - name: rm dir
+       shell: |
+             sudo netstat -anp | grep LISTEN |grep {{port}}
+             if [ $? = 0 ]
+             then
+                 sudo netstat -nlp | grep LISTEN  | grep  {{port}} | awk '{print $7}' | awk -F '/' '{print $1}' | xargs kill -9
+             fi
+             rm -rf {{work_dir}}

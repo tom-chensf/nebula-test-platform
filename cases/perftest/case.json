@@ -1,0 +1,10 @@
+{
+"case":[{"casename":"case1_1_step_0050_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"25","perftest_duration":"180"},
+{"casename":"case1_1_step_0100_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"50","perftest_duration":"180"},
+{"casename":"case1_1_step_0200_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"100","perftest_duration":"180"},
+{"casename":"case1_1_step_0400_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"200","perftest_duration":"180"},
+{"casename":"case1_1_step_0600_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"300","perftest_duration":"180"},
+{"casename":"case1_1_step_0800_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"400","perftest_duration":"180"},
+{"casename":"case1_1_step_1000_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"500","perftest_duration":"180"}
+]
+}

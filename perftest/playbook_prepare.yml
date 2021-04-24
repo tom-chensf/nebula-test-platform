@@ -1,0 +1,134 @@
+ - hosts:  nebula-machine
+   tasks:
+     - name: install tool
+       become: yes
+       become_user: root
+       become_method: sudo
+       yum:
+         name:  python3
+         state: installed
+
+ - hosts: perftest-machine-master
+   vars:      
+     nebula_bench_repo: https://github.com/tom-chensf/nebula-bench.git
+     branch: modify_perftest
+     jmeter_dir: jmeter
+   tasks:
+     - name: setup perftest tool
+       shell: |
+              if [[ ! -d {{work_dir}} ]]; then
+                 mkdir {{work_dir}}
+              fi
+
+              cd {{work_dir}}
+              git clone {{nebula_bench_repo}} -b {{branch}}
+              if [[ $? != 0 ]]; then
+                  echo "setup perftest tool failed: git clone repo" 
+                  exit -1
+              fi
+              cd nebula-bench
+              mkdir {{jmeter_dir}}
+              sh ldbc/setup/setup.sh {{jmeter_dir}} y
+              if [[ $? != 0 ]]; then
+                  echo "setup perftest tool failed:setup jmeter" >> /tmp/xx
+                  exit -1
+              fi
+       register: setup_msg
+     - fail:
+         msg: "setup perftest tool failed"
+       when: "'setup perftest tool failed'  in setup_msg.stdout"
+      
+     - name: find jmeter full path   
+       shell: |
+            find {{work_dir}} -type f -name jmeter
+       register: jmeter_full_path
+  
+     - name: cp jmeter
+       copy: src={{playbook_dir}}/../conf/perftest_conf/jmeter dest={{jmeter_full_path.stdout_lines[0]}} force=yes
+   
+     - name: find jmeter.properties path
+       shell: |
+            find {{work_dir}} -type f -name jmeter.properties
+       register: jmeter_properties_full_path
+
+     - name: cp jmeter.properties    
+       template: src={{playbook_dir}}/../conf/perftest_conf/jmeter.properties_master.j2 dest={{jmeter_properties_full_path.stdout_lines[0]}} force=yes 
+     
+     - name: start jmeter-server
+       shell: |
+          cd {{work_dir}}
+          jmeter_server=`find {{work_dir}} -name "jmeter-server"`
+          nohup $jmeter_server &
+          sleep 10
+          netstat -anp | grep LISTEN | grep {{port}} 
+          if [[ $? != 0 ]]; then 
+              echo "start jmeter-server failed"
+          fi
+       register: jmeter_server_msg
+ 
+     - fail:
+         msg: "start jmeter-server failed"
+       when: "'start jmeter-server failed' in jmeter_server_msg.stdout"
+
+ - hosts: perftest-machine-slave 
+   vars:
+     nebula_bench_repo: https://github.com/tom-chensf/nebula-bench.git
+     branch: modify_perftest
+     jmeter_dir: jmeter
+   tasks:
+     - name: setup perftest tool
+       shell: |
+              if [[ ! -d {{work_dir}} ]]; then
+                 mkdir {{work_dir}}
+              fi
+
+              cd {{work_dir}}
+              git clone {{nebula_bench_repo}} -b {{branch}}
+              if [[ $? != 0 ]]; then
+                  echo "setup perftest tool failed: git clone repo"
+                  exit -1
+              fi
+              cd nebula-bench
+              mkdir {{jmeter_dir}}
+              sh ldbc/setup/setup.sh {{jmeter_dir}} y
+              if [[ $? != 0 ]]; then
+                  echo "setup perftest tool failed:setup jmeter" 
+                  exit -1
+              fi
+       register: setup_msg
+
+     - fail:
+         msg: "setup perftest tool failed"
+       when: "'setup perftest tool failed'  in setup_msg.stdout"
+
+     - name: find jmeter full path
+       shell: |
+           find {{work_dir}} -type f -name jmeter
+       register: jmeter_full_path
+
+     - name: cp jmeter
+       copy: src={{playbook_dir}}/../conf/perftest_conf/jmeter dest={{jmeter_full_path.stdout_lines[0]}} force=yes
+
+     - name: find jmeter.properties path
+       shell: |
+            find {{work_dir}} -type f -name jmeter.properties
+       register: jmeter_properties_full_path
+
+     - name: cp jmeter.properties
+       template: src={{playbook_dir}}/../conf/perftest_conf/jmeter.properties_slave.j2 dest={{jmeter_properties_full_path.stdout_lines[0]}} force=yes
+
+     - name: start jmeter-server
+       shell: |
+          cd {{work_dir}}
+          jmeter_server=`find {{work_dir}} -name "jmeter-server"`
+          nohup $jmeter_server &
+          sleep 10
+          netstat -anp | grep LISTEN | grep {{port}}
+          if [[ $? != 0 ]]; then
+              echo "start jmeter-server failed"
+          fi
+       register: jmeter_server_msg
+
+     - fail:
+         msg: "start jmeter-server failed"
+       when: "'start jmeter-server failed' in jmeter_server_msg.stdout"
