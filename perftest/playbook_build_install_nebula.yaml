@@ -103,13 +103,13 @@
        register: etc_path
      
      - name: cp meta conf
-       template: src={{playbook_dir}}/../conf/perf_service_conf/nebula-metad.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-metad.conf
+       template: src={{playbook_dir}}/../conf/perftest_conf/nebula-metad.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-metad.conf
 
      - name: cp storaged conf
-       template: src={{playbook_dir}}/../conf/perf_service_conf/nebula-storaged.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-storaged.conf 
+       template: src={{playbook_dir}}/../conf/perftest_conf/nebula-storaged.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-storaged.conf 
 
      - name: cp graphd conf
-       template: src={{playbook_dir}}/../conf/perf_service_conf/nebula-graphd.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-graphd.conf
+       template: src={{playbook_dir}}/../conf/perftest_conf/nebula-graphd.conf.j2 dest={{etc_path.stdout_lines[0]}}/nebula-graphd.conf
 
      - name: cp data
        shell: |

@@ -2,7 +2,7 @@
    remote_user: vesoft
    tasks:
      - name: clean dir
-       shell:  rm -rf /home/vesoft/nebula_build/
+       shell:  sudo rm -rf /home/vesoft/nebula_build/
 
  - hosts:  nebula-machine
    tasks:
