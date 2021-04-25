@@ -1,6 +1,6 @@
 This project is used to test nebula
 
-#1. modules 
+# 1. modules 
 
     README.md : doc
     build:      build nebula code to package
@@ -12,8 +12,8 @@ This project is used to test nebula
     setup:      setup tool
 
 
-#2. perftest
-    A setup: 
+# 2. perftest
+##   A setup: 
       chose machines and setup os,ip 
       add user vesoft  make dirs for test and  config ssh password free login in machines
       add data in the location 
@@ -21,14 +21,14 @@ This project is used to test nebula
       This repo`s setup work now is done, you can ignore it 
       If you change machine you should  redo it and add conf in this repo
       
-    B Chose one machine as control machine
+##   B Chose one machine as control machine
       Download this repo (this repo use 192.168.15.4)
       git clone xxx
       cd nebula-test-platform
       sh setup/setup.sh
       This step is done , if you change machine you should redo it 
 
-    C How to run 
+##   C How to run 
       cd nebula-test-platform/perftest
 
       // install perftest tools 
@@ -44,21 +44,22 @@ This project is used to test nebula
       // stop service and clean env, this step if used  must redo S1,S2 
       S4. ansible-playbook  -i ../conf/perftest_conf/hosts playbook_stop_clean.yml
    
-   D If you want to run daily ,you can add it to machine  crontab 
+ ##  D If you want to run daily ,you can add it to machine  crontab 
+     
+     18 00 * * *  /home/vesoft/.local/bin/ansible-playbook -i  /home/vesoft/github/nebula-test-platform/conf/perftest_conf/hosts /home/vesoft/github/nebula-test-platform/perftest/playbook_build_install_nebula.yaml  | tee /tmp/playbook_build_install_nebula.log  && /home/vesoft/.local/bin/ansible-playbook -i  /home/vesoft/github/nebula-test-platform/conf/perftest_conf/hosts  /home/vesoft/github/nebula-test-platform/perftest/playbook_perftest.yaml  | tee /tmp/playbook_perftest.log
    
-   E Add perf case based on ldbc
+ ##  E Add perf case based on ldbc
 
      [case file] : cases/perftest/case.json
  
      [add info to cases/perftest/case.json,data example]:
      {"casename":"case1_1_step_0050_thread","perftest_nGQL":"go 1 step from replace over knows","perftest_num_threads":"25","perftest_duration":"7"}     
 
-   F Others
-     Now the machine`s system monitor
-     http://192.168.15.4:3000/d/9CWBz0bik/1-node-exporter-for-prometheus-dashboard-cn-v20201010?orgId=1
+##  F Now the machines system monitor
+      http://192.168.15.4:3000/d/9CWBz0bik/1-node-exporter-for-prometheus-dashboard-cn-v20201010?orgId=1
      
-   G [PerfDashboard]
-     http://192.168.8.6:3000/collection/root 
-     [user/pwd] : admin@xxx.com/admin123 
+##  G PerfDashboard
+      http://192.168.8.6:3000/collection/root 
+      [user/pwd] : admin@xxx.com/admin123 
     
  
