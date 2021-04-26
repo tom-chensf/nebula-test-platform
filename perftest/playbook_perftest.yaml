@@ -33,7 +33,7 @@
      - name: cp run.sh
        template: src={{playbook_dir}}/../conf/perftest_conf/run.sh.j2 dest={{work_dir}}/nebula-bench/run.sh force=yes
          
-     - name: replace jmx var
+     - name: run case
        shell: |
            cp -rf {{work_dir}}/{{test_dir}}/go_step.jmx {{work_dir}}/nebula-bench/ldbc/jmx/go_step.jmx
            echo {{ item.casename }} > /tmp/x
